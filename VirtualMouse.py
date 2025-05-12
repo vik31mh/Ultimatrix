@@ -42,6 +42,7 @@ while True:
         print("❌ Failed to capture frame")
         continue
 
+
     img = detector.findHands(img)
     lmList, bbox = detector.findPosition(img)
 
@@ -117,3 +118,5 @@ while True:
 cap.release()
 cv2.destroyAllWindows()
 print("[INFO] Clean exit")
+
+
