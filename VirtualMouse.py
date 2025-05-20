@@ -42,7 +42,6 @@ while True:
         print("❌ Failed to capture frame")
         continue
 
-
     img = detector.findHands(img)
     lmList, bbox = detector.findPosition(img)
 
@@ -60,16 +59,18 @@ while True:
             clocX = plocX + (x3 - plocX) / smoothening
             clocY = plocY + (y3 - plocY) / smoothening
 
-            # Clamp the coordinates within screen bounds
-            clocX = np.clip(clocX, 0, wScr - 1)
+            # Flip X for mirror effect and clamp values
+            flippedX = np.clip(wScr - clocX, 0, wScr - 1)
             clocY = np.clip(clocY, 0, hScr - 1)
 
-            autopy.mouse.move(wScr - clocX, clocY)
+            try:
+                autopy.mouse.move(flippedX, clocY)
+            except ValueError as e:
+                print(f"⚠️ Mouse move out of bounds: ({flippedX}, {clocY}) – {e}")
 
             cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
 
             plocX, plocY = clocX, clocY
-
 
         # 🖱 Left-click: only index finger up
         if fingers[1] == 1 and fingers[2] == 0 and fingers[3] == 0 and fingers[4] == 0:
@@ -92,9 +93,9 @@ while True:
             delta_y = current_y - initial_scroll_y
 
             if delta_y > scroll_threshold:
-                pyautogui.scroll(-scroll_speed)  # Scroll down (faster speed)
+                pyautogui.scroll(-scroll_speed)  # Scroll down
             elif delta_y < -scroll_threshold:
-                pyautogui.scroll(scroll_speed)   # Scroll up (faster speed)
+                pyautogui.scroll(scroll_speed)   # Scroll up
 
         else:
             if scroll_mode:
@@ -118,5 +119,3 @@ while True:
 cap.release()
 cv2.destroyAllWindows()
 print("[INFO] Clean exit")
-
-
