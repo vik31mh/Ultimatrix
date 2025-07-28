@@ -30,7 +30,7 @@ class handDetector:
         bbox = None
 
         if self.results.multi_hand_landmarks:
-            print(f"✅ Detected {len(self.results.multi_hand_landmarks)} hand(s)")
+            print(f"Detected {len(self.results.multi_hand_landmarks)} hand(s)")
             myHand = self.results.multi_hand_landmarks[handNo]
             xList, yList = [], []
 
@@ -89,6 +89,5 @@ class handDetector:
             cv2.circle(img, (cx, cy), r, (0, 255, 0), cv2.FILLED)
 
         return length, img, [x1, y1, x2, y2, cx, cy]
-
 
 
