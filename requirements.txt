@@ -1,0 +1,11 @@
+tk
+opencv-python
+numpy
+mediapipe
+autopy
+pyautogui
+wmi
+Pillow
+pycaw
+comtypes
+pyinstaller

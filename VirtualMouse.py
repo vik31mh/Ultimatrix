@@ -95,9 +95,9 @@ SPECIAL MODES:
 • Pinky + Index → Brightness control
 
 HOW TO USE MODES:
-• Move hand up to increase
-• Move hand down to decrease
-• Stop moving to pause adjustment
+• Move hand up and hold to increase
+• Move hand down and hold to decrease
+• Move hand back to center to stop adjusting
 """
         instr = tk.Label(left, text=instr_text, font=("Arial", 9), fg="white", bg="#34495e", justify="left", wraplength=350)
         instr.pack(pady=5, padx=5, fill="both", expand=True)
