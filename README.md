@@ -8,6 +8,7 @@ An advanced hand gesture-based virtual mouse system that allows you to control y
 - **Cursor Movement**: Move your cursor by making a closed fist
 - **Left Click**: Point with your index finger only
 - **Right Click**: Point with your thumb only
+- **Screenshot**: Open all five fingers to capture a screenshot
 
 ### Special Control Modes
 - **Scroll Mode**: Raise your pinky finger to enter scroll mode
@@ -19,6 +20,7 @@ An advanced hand gesture-based virtual mouse system that allows you to control y
 - **Smooth Mouse Movement**: Built-in smoothening algorithm for precise control
 - **Multiple Gesture Recognition**: Simultaneous detection of complex hand gestures
 - **GUI Interface**: Professional interface with live camera feed
+- **Screenshot Capture**: Automatic screenshot saving to Pictures/Screenshots folder
 
 ## 🚀 Quick Start
 
@@ -72,6 +74,7 @@ python VirtualMouse.py
 | ![Closed Fist](docs/fist.png) | **Move Cursor** - Navigate around screen |
 | ![Index Finger](docs/index.png) | **Left Click** - Single finger pointing |
 | ![Thumb](docs/thumb.png) | **Right Click** - Thumb up gesture |
+| ![Open Hand](docs/open-hand.png) | **Screenshot** - All five fingers open |
 
 ### Special Modes
 | Gesture | Mode | Action |
@@ -85,6 +88,12 @@ python VirtualMouse.py
 2. Move your hand **up** to increase (volume/brightness/scroll up)
 3. Move your hand **down** to decrease (volume/brightness/scroll down)
 4. Change to a different gesture to exit the mode
+
+### Screenshot Feature
+- **Open all five fingers** to capture a screenshot
+- Screenshots are automatically saved to `Pictures/Screenshots` folder
+- Includes timestamp in filename for organization
+- Visual confirmation popup appears briefly after capture
 
 ## 🛠️ Technical Details
 
@@ -106,6 +115,7 @@ python VirtualMouse.py
 - **Smoothening Algorithm**: Reduces jitter in cursor movement
 - **Gesture Debouncing**: Prevents accidental multiple clicks
 - **Memory Efficient**: Minimal resource usage
+- **Screenshot Lock**: Prevents multiple screenshots from single gesture
 
 ## 📁 Project Structure
 
@@ -155,6 +165,11 @@ scroll_speed = 30           # Scroll speed
 - Ensure you're running on Windows
 - Some laptops may not support WMI brightness control
 - Try updating display drivers
+
+**Screenshot feature not working**
+- Ensure you have write permissions to Pictures folder
+- Check if Screenshots folder is created automatically
+- Verify PyAutoGUI is properly installed
 
 **Volume control not working**
 - Ensure Windows audio service is running
