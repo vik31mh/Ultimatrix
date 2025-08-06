@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 import cv2
 import numpy as np
 import HandTrackingModule as htm
@@ -10,6 +10,8 @@ import wmi
 from PIL import Image, ImageTk
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 from comtypes import CLSCTX_ALL
+import os
+import threading
 
 class VirtualMouseApp:
     def __init__(self, root):
@@ -31,6 +33,8 @@ class VirtualMouseApp:
         self.scroll_threshold = 50
         self.scroll_speed = 30
         self.is_running = False
+        self.screenshot_folder = None
+        self.screenshot_lock = False  # Block screenshot temporarily
 
         # Setup audio and brightness
         try:
@@ -63,7 +67,6 @@ class VirtualMouseApp:
         self.status = tk.Label(left, text="Status: Stopped", font=("Arial", 12, "bold"), fg="white", bg="#34495e")
         self.status.pack(pady=5)
 
-        # Control buttons
         control = tk.Frame(left, bg="#34495e")
         control.pack(pady=10)
 
@@ -77,7 +80,6 @@ class VirtualMouseApp:
                                   command=self.stop_mouse, state="disabled")
         self.stop_btn.pack(side="left", padx=5)
 
-        # Instructions
         instr_title = tk.Label(left, text="Hand Gestures", font=("Arial", 14, "bold"), fg="white", bg="#34495e")
         instr_title.pack(pady=5)
 
@@ -93,6 +95,9 @@ SPECIAL MODES:
 • Pinky only → Scroll mode
 • Pinky + Thumb → Volume control
 • Pinky + Index → Brightness control
+
+SCREENSHOT:
+• All fingers open → Take screenshot
 
 HOW TO USE MODES:
 • Move hand up and hold to increase
@@ -151,6 +156,13 @@ HOW TO USE MODES:
             fingers = self.detector.fingersUp()
             little_up, thumb_up, index_up = fingers[4], fingers[0], fingers[1]
 
+            # Screenshot (all fingers open)
+            if fingers == [1,1,1,1,1] and not self.screenshot_lock:
+                self.screenshot_lock = True
+                self.capture_screenshot()
+            elif fingers != [1,1,1,1,1]:
+                self.screenshot_lock = False
+
             # Volume mode: pinky + thumb
             if little_up and thumb_up and not index_up:
                 if not self.volume_mode:
@@ -167,7 +179,7 @@ HOW TO USE MODES:
                         new_vol = min(self.volume.GetMasterVolumeLevelScalar() + 0.01, 1)
                         self.volume.SetMasterVolumeLevelScalar(new_vol, None)
 
-            # Scroll mode: pinky only
+            # Scroll mode
             elif little_up and not thumb_up and not index_up:
                 if not self.scroll_mode:
                     self.scroll_mode = True
@@ -180,7 +192,7 @@ HOW TO USE MODES:
                 elif delta < -self.scroll_threshold:
                     pyautogui.scroll(self.scroll_speed)
 
-            # Brightness mode: pinky + index
+            # Brightness mode
             elif little_up and index_up and not thumb_up and fingers[2]==0 and fingers[3]==0:
                 if not self.brightness_mode:
                     self.brightness_mode = True
@@ -201,11 +213,10 @@ HOW TO USE MODES:
                         pass
 
             else:
-                # Exit all modes if no matching gesture
                 self.scroll_mode = self.volume_mode = self.brightness_mode = False
                 self.initial_y = None
 
-            # Mouse movement: closed fist
+            # Mouse movement
             if fingers == [0,0,0,0,0]:
                 x3 = np.interp(x1, (self.frameR, self.wcam - self.frameR), (0, self.wScr))
                 y3 = np.interp(y1, (self.frameR, self.hcam - self.frameR), (0, self.hScr))
@@ -217,17 +228,41 @@ HOW TO USE MODES:
                     pass
                 self.plocX, self.plocY = self.clocX, self.clocY
 
-            # Left click: index only
+            # Left click
             if fingers==[0,1,0,0,0]:
-                autopy.mouse.click()
-                time.sleep(0.1)
-            # Right click: thumb only
+                if sum(fingers) == 1:
+                    autopy.mouse.click()
+                    time.sleep(0.1)
+            # Right click
             if fingers==[1,0,0,0,0]:
-                autopy.mouse.click(button=autopy.mouse.Button.RIGHT)
-                time.sleep(0.1)
+                if sum(fingers) == 1:  # Ensure only one finger is up
+                    autopy.mouse.click(button=autopy.mouse.Button.RIGHT)
+                    time.sleep(0.1)
 
         self.display_frame(img)
         self.root.after(10, self.process_video)
+
+    def capture_screenshot(self):
+        if not self.screenshot_folder:
+            pictures_folder = os.path.join(os.path.expanduser('~'), 'Pictures')
+            self.screenshot_folder = os.path.join(pictures_folder, 'Screenshots')
+            os.makedirs(self.screenshot_folder, exist_ok=True)
+
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        filepath = os.path.join(self.screenshot_folder, f"screenshot_{timestamp}.png")
+        pyautogui.screenshot(filepath)
+
+        # Auto-close popup after 2 seconds
+        def show_and_close():
+            msg = tk.Toplevel()
+            msg.title("Screenshot")
+            msg.geometry("200x80+500+300")
+            msg.config(bg="white")
+            tk.Label(msg, text="Screenshot Captured!", font=("Arial", 10, "bold"), bg="white").pack(expand=True)
+            msg.after(2000, msg.destroy)
+
+        threading.Thread(target=show_and_close, daemon=True).start()
+
 
     def display_frame(self, frame):
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
