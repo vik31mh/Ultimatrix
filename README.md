@@ -1,11 +1,11 @@
 # Ultimatrix - AI Virtual Mouse Controller
 
-An advanced hand gesture-based virtual mouse system that allows you to control your computer using hand movements and gestures captured through your webcam.
+An advanced hand gesture-based virtual mouse system that allows you to control your computer using hand movements and gestures captured through your webcam. This project features a modern GUI interface built with Tkinter and provides intuitive gesture controls for mouse operations.
 
 ## 🌟 Features
 
 ### Mouse Control
-- **Cursor Movement**: Move your cursor by making a closed fist
+- **Cursor Movement**: Navigate your cursor using hand movements
 - **Left Click**: Point with your index finger only
 - **Right Click**: Point with your thumb only
 - **Screenshot**: Open all five fingers to capture a screenshot
@@ -19,8 +19,9 @@ An advanced hand gesture-based virtual mouse system that allows you to control y
 - **Real-time Hand Tracking**: Uses MediaPipe for accurate hand detection
 - **Smooth Mouse Movement**: Built-in smoothening algorithm for precise control
 - **Multiple Gesture Recognition**: Simultaneous detection of complex hand gestures
-- **GUI Interface**: Professional interface with live camera feed
-- **Screenshot Capture**: Automatic screenshot saving to Pictures/Screenshots folder
+- **Modern GUI Interface**: Professional Tkinter interface with live camera feed and controls
+- **Screenshot Capture**: Automatic screenshot saving with visual confirmation
+- **Cross-platform Support**: Works on Windows with full feature support
 
 ## 🚀 Quick Start
 
@@ -45,28 +46,35 @@ An advanced hand gesture-based virtual mouse system that allows you to control y
 
 3. **Install dependencies**
    ```bash
-   pip install opencv-python mediapipe numpy autopy pyautogui pycaw comtypes wmi pillow
+   pip install -r requirements.txt
+   ```
+   
+   Or install individually:
+   ```bash
+   pip install tk opencv-python numpy mediapipe autopy pyautogui wmi Pillow pycaw comtypes
    ```
 
 ### Usage
 
-#### Option 1: GUI Interface (Recommended)
-```bash
-python MouseController.py
-```
-- Opens a professional GUI with controls and instructions
-- Click START to begin hand tracking
-- Live camera feed displayed on the right
-- Click STOP to end session
-
-#### Option 2: Direct Execution
+Run the application:
 ```bash
 python VirtualMouse.py
 ```
-- Starts immediately with camera window
-- Press 'q' to quit
+
+- Opens a professional GUI with controls and live camera feed
+- Click "Start Camera" to begin hand tracking
+- Use the gesture controls as described below
+- Click "Stop Camera" to end session
+- Press 'q' in the camera window to quit
 
 ## 🎮 Hand Gestures Guide
+
+### GUI Interface Features
+- **Start/Stop Camera**: Control camera activation through GUI buttons
+- **Live Camera Feed**: Real-time video display in the application window
+- **Status Indicators**: Visual feedback for active modes and gestures
+- **File Dialogs**: Easy screenshot folder selection
+- **Modern Design**: Professional dark-themed interface
 
 ### Basic Controls
 | Gesture | Action |
@@ -91,24 +99,26 @@ python VirtualMouse.py
 
 ### Screenshot Feature
 - **Open all five fingers** to capture a screenshot
-- Screenshots are automatically saved to `Pictures/Screenshots` folder
-- Includes timestamp in filename for organization
-- Visual confirmation popup appears briefly after capture
+- Screenshots are saved with timestamp filenames
+- Visual confirmation appears after capture
+- Temporary lock prevents multiple screenshots from single gesture
 
 ## 🛠️ Technical Details
 
 ### Architecture
-- **Hand Detection**: MediaPipe Hands solution
-- **Computer Vision**: OpenCV for image processing
-- **Mouse Control**: AutoPy for cross-platform mouse operations
+- **Hand Detection**: MediaPipe Hands solution for robust hand tracking
+- **Computer Vision**: OpenCV for image processing and camera handling
+- **Mouse Control**: AutoPy and PyAutoGUI for cross-platform mouse operations
 - **Audio Control**: pycaw for Windows audio management
 - **Brightness Control**: WMI for Windows brightness adjustment
-- **GUI Framework**: Tkinter with modern styling
+- **GUI Framework**: Tkinter with modern dark theme styling
+- **Image Processing**: PIL (Pillow) for image manipulation and display
 
 ### Key Components
-- `HandTrackingModule.py` - Core hand detection and tracking
-- `VirtualMouse.py` - Main virtual mouse functionality
-- `MouseController.py` - GUI interface and controller
+- `HandTrackingModule.py` - Core hand detection and tracking functionality
+- `VirtualMouse.py` - Main application with GUI interface and virtual mouse functionality
+- `requirements.txt` - Python dependencies list
+- `icon.ico` - Application icon
 
 ### Performance Features
 - **Optimized Frame Processing**: 30+ FPS real-time tracking
@@ -122,13 +132,13 @@ python VirtualMouse.py
 ```
 Ultimatrix/
 ├── HandTrackingModule.py    # Hand detection and tracking module
-├── VirtualMouse.py          # Core virtual mouse functionality
-├── MouseController.py       # GUI controller interface
+├── VirtualMouse.py          # Main application with GUI and virtual mouse functionality
 ├── README.md               # Project documentation
 ├── requirements.txt        # Python dependencies
-├── venv/                   # Virtual environment
-├── build/                  # Build files
-└── dist/                   # Distribution files
+├── icon.ico               # Application icon
+├── VirtualMouse.spec      # PyInstaller specification file
+├── .gitignore            # Git ignore file
+└── __pycache__/          # Python cache files
 ```
 
 ## 🔧 Configuration
@@ -147,6 +157,17 @@ smoothening = 5              # Mouse smoothening
 scroll_threshold = 50        # Gesture sensitivity
 scroll_speed = 30           # Scroll speed
 ```
+
+## 📦 Building Executable
+
+The project includes a PyInstaller specification file for creating a standalone executable:
+
+```bash
+pip install pyinstaller
+pyinstaller VirtualMouse.spec
+```
+
+This will create a distributable executable in the `dist/` folder that can run without requiring Python installation.
 
 ## 🚨 Troubleshooting
 
@@ -167,9 +188,9 @@ scroll_speed = 30           # Scroll speed
 - Try updating display drivers
 
 **Screenshot feature not working**
-- Ensure you have write permissions to Pictures folder
-- Check if Screenshots folder is created automatically
-- Verify PyAutoGUI is properly installed
+- Ensure the application has permission to save files in the selected directory
+- Check if PyAutoGUI is properly installed
+- Verify that the screenshot folder path is accessible
 
 **Volume control not working**
 - Ensure Windows audio service is running
@@ -200,13 +221,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Future Enhancements
 
-- [ ] Multi-hand gesture support
-- [ ] Custom gesture configuration
-- [ ] Voice command integration
-- [ ] Cross-platform brightness control
-- [ ] Gesture recording and playback
-- [ ] Eye tracking integration
-- [ ] Mobile app companion
+- [ ] Multi-hand gesture support for advanced controls
+- [ ] Customizable gesture configuration through GUI
+- [ ] Gesture sensitivity adjustment settings
+- [ ] Cross-platform brightness control (macOS, Linux)
+- [ ] Gesture recording and macro playback
+- [ ] Additional mouse gestures (double-click, drag & drop)
+- [ ] Configuration file for persistent settings
+- [ ] Multi-monitor support and calibration
 
 ---
 
