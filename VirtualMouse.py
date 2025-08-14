@@ -21,7 +21,7 @@ class VirtualMouseApp:
         self.root.configure(bg="#2c3e50")
 
         # Variables
-        self.wcam, self.hcam = 640, 480
+        self.wcam, self.hcam = 400, 300
         self.frameR = 100
         self.smoothening = 5
         self.plocX, self.plocY = 0, 0
@@ -122,6 +122,7 @@ HOW TO USE MODES:
         self.cap = cv2.VideoCapture(0)
         self.cap.set(3, self.wcam)
         self.cap.set(4, self.hcam)
+        self.cap.set(cv2.CAP_PROP_FPS, 30)  # Limit FPS to 30
         self.detector = htm.handDetector(maxHands=1)
         self.wScr, self.hScr = autopy.screen.size()
         self.is_running = True
@@ -204,13 +205,13 @@ HOW TO USE MODES:
                     try:
                         brightness = self.c.WmiMonitorBrightness()[0].CurrentBrightness
                         if delta > self.scroll_threshold:
-                            new_brightness = max(brightness - 1, 0)
+                            new_brightness = max(brightness - 5, 0)  # Increased step from 1 to 5
                             self.brightness_methods.WmiSetBrightness(new_brightness, 0)
                         elif delta < -self.scroll_threshold:
-                            new_brightness = min(brightness + 1, 100)
+                            new_brightness = min(brightness + 5, 100)  # Increased step from 1 to 5
                             self.brightness_methods.WmiSetBrightness(new_brightness, 0)
-                    except:
-                        pass
+                    except Exception as e:
+                        print(f"Brightness control error: {e}")  # Debug info
 
             else:
                 self.scroll_mode = self.volume_mode = self.brightness_mode = False
@@ -240,7 +241,7 @@ HOW TO USE MODES:
                     time.sleep(0.1)
 
         self.display_frame(img)
-        self.root.after(10, self.process_video)
+        self.root.after(5, self.process_video)  # ~200 FPS for ultra responsiveness
 
     def capture_screenshot(self):
         if not self.screenshot_folder:
