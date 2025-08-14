@@ -5,7 +5,7 @@ a = Analysis(
     ['VirtualMouse.py'],
     pathex=[],
     binaries=[],
-    datas=[('venv\\Lib\\site-packages\\mediapipe', 'mediapipe')],
+    datas=[('venv\\Lib\\site-packages\\mediapipe\\modules', 'mediapipe\\modules')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
