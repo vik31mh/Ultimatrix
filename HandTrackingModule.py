@@ -4,21 +4,24 @@ import math
 
 class handDetector:
     def __init__(self, maxHands=2, detectionCon=0.5, trackCon=0.5):
+        # Initialize Mediapipe Hands module with given parameters
         self.mpHands = mp.solutions.hands
         self.hands = self.mpHands.Hands(
-            max_num_hands=maxHands,
-            min_detection_confidence=detectionCon,
-            min_tracking_confidence=trackCon
+            max_num_hands=maxHands,                 # Maximum number of hands to detect
+            min_detection_confidence=detectionCon,  # Minimum detection confidence
+            min_tracking_confidence=trackCon        # Minimum tracking confidence
         )
-        self.mpDraw = mp.solutions.drawing_utils
-        self.results = None
-        self.lmList = []
-        self.tipIds = [4, 8, 12, 16, 20]
+        self.mpDraw = mp.solutions.drawing_utils  # Utility for drawing hand landmarks
+        self.results = None                       # Stores detection results
+        self.lmList = []                          # List of landmarks for a hand
+        self.tipIds = [4, 8, 12, 16, 20]          # Landmark indices for fingertips
 
     def findHands(self, img, draw=True):
+        # Convert image to RGB (required by Mediapipe)
         imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        self.results = self.hands.process(imgRGB)
+        self.results = self.hands.process(imgRGB)  # Process the frame for hand landmarks
 
+        # If hands are detected, draw landmarks
         if self.results.multi_hand_landmarks:
             for handLms in self.results.multi_hand_landmarks:
                 if draw:
@@ -26,29 +29,34 @@ class handDetector:
         return img
 
     def findPosition(self, img, handNo=0, draw=True):
+        # Reset landmark list for current frame
         self.lmList = []
         bbox = None
 
         if self.results.multi_hand_landmarks:
             print(f"Detected {len(self.results.multi_hand_landmarks)} hand(s)")
             myHand = self.results.multi_hand_landmarks[handNo]
+
             xList, yList = [], []
 
+            # Loop through each landmark in the detected hand
             for id, lm in enumerate(myHand.landmark):
                 h, w, c = img.shape
-                cx, cy = int(lm.x * w), int(lm.y * h)
+                cx, cy = int(lm.x * w), int(lm.y * h)  # Convert normalized coords to pixel values
                 xList.append(cx)
                 yList.append(cy)
-                self.lmList.append([id, cx, cy])
+                self.lmList.append([id, cx, cy])       # Save landmark id and coordinates
 
                 if draw:
-                    cv2.circle(img, (cx, cy), 5, (255, 0, 255), cv2.FILLED)
+                    cv2.circle(img, (cx, cy), 5, (255, 0, 255), cv2.FILLED)  # Draw each landmark
 
+            # Bounding box for hand
             xmin, xmax = min(xList), max(xList)
             ymin, ymax = min(yList), max(yList)
             bbox = (xmin, ymin, xmax, ymax)
 
             if draw:
+                # Draw bounding rectangle around hand
                 cv2.rectangle(img, (xmin - 20, ymin - 20), (xmax + 20, ymax + 20), (0, 255, 0), 2)
 
         return self.lmList, bbox
@@ -56,37 +64,40 @@ class handDetector:
     def fingersUp(self):
         fingers = []
 
+        # If no landmarks detected, return empty
         if len(self.lmList) == 0:
             return fingers
 
-        # Thumb detection (adjusted for hand side)
-        if self.lmList[self.tipIds[0]][1] < self.lmList[self.tipIds[0] - 1][1]:  # Left hand
-            fingers.append(1)
+        # Thumb check (different logic because thumb bends sideways)
+        if self.lmList[self.tipIds[0]][1] < self.lmList[self.tipIds[0] - 1][1]:  # Check x-coord
+            fingers.append(1)  # Thumb is up
         else:
-            fingers.append(0)
+            fingers.append(0)  # Thumb is down
 
-        # Other fingers
+        # Other four fingers (check y-coordinates of tip vs below joint)
         for i in range(1, 5):
             if self.lmList[self.tipIds[i]][2] < self.lmList[self.tipIds[i] - 2][2]:
-                fingers.append(1)
+                fingers.append(1)  # Finger is up
             else:
-                fingers.append(0)
+                fingers.append(0)  # Finger is down
 
         print(f"Finger states: {fingers}")
         return fingers
 
     def findDistance(self, p1, p2, img, draw=True, r=5, t=3):
+        # Get coordinates of two landmarks
         x1, y1 = self.lmList[p1][1], self.lmList[p1][2]
         x2, y2 = self.lmList[p2][1], self.lmList[p2][2]
-        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2  # Midpoint
 
+        # Euclidean distance between two points
         length = math.hypot(x2 - x1, y2 - y1)
 
         if draw:
+            # Draw line and circles between points
             cv2.line(img, (x1, y1), (x2, y2), (255, 0, 255), t)
             cv2.circle(img, (x1, y1), r, (255, 0, 255), cv2.FILLED)
             cv2.circle(img, (x2, y2), r, (255, 0, 255), cv2.FILLED)
             cv2.circle(img, (cx, cy), r, (0, 255, 0), cv2.FILLED)
 
         return length, img, [x1, y1, x2, y2, cx, cy]
-

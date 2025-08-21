@@ -2,71 +2,88 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 import cv2
 import numpy as np
-import HandTrackingModule as htm
-import autopy
-import pyautogui
+import HandTrackingModule as htm   # Custom hand tracking module (built on MediaPipe)
+import autopy                      # For controlling mouse movement/clicks
+import pyautogui                   # For scrolling + screenshots
 import time
-import wmi
-from PIL import Image, ImageTk
-from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+import wmi                         # For brightness control (Windows only)
+from PIL import Image, ImageTk     # For showing camera feed inside Tkinter GUI
+from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume  # For controlling system volume
 from comtypes import CLSCTX_ALL
 import os
-import threading
+import threading                   # For running popups without freezing GUI
 
+# -------------------------------
+# MAIN APPLICATION CLASS
+# -------------------------------
 class VirtualMouseApp:
     def __init__(self, root):
+        # Setup main window
         self.root = root
         self.root.title("AI Virtual Mouse Controller")
         self.root.geometry("1200x650")
         self.root.configure(bg="#2c3e50")
 
-        # Variables
-        self.wcam, self.hcam = 400, 300
-        self.frameR = 100
-        self.smoothening = 5
-        self.plocX, self.plocY = 0, 0
-        self.clocX, self.clocY = 0, 0
+        # -------------------------------
+        # VARIABLES (for tracking states)
+        # -------------------------------
+        self.wcam, self.hcam = 400, 300          # Camera resolution
+        self.frameR = 100                        # Frame reduction (to avoid edges)
+        self.smoothening = 5                     # Cursor smoothing factor
+        self.plocX, self.plocY = 0, 0            # Previous cursor location
+        self.clocX, self.clocY = 0, 0            # Current cursor location
         self.scroll_mode = False
         self.volume_mode = False
         self.brightness_mode = False
-        self.initial_y = None
-        self.scroll_threshold = 50
-        self.scroll_speed = 30
-        self.is_running = False
-        self.screenshot_folder = None
-        self.screenshot_lock = False  # Block screenshot temporarily
+        self.initial_y = None                    # Reference Y position for gestures
+        self.scroll_threshold = 50               # Gesture threshold for actions
+        self.scroll_speed = 30                   # How fast scrolling happens
+        self.is_running = False                  # Status of camera loop
+        self.screenshot_folder = None            # Folder where screenshots are saved
+        self.screenshot_lock = False             # Prevents multiple screenshots at once
 
-        # Setup audio and brightness
+        # -------------------------------
+        # SETUP VOLUME + BRIGHTNESS CONTROL
+        # -------------------------------
         try:
+            # Get default audio device for controlling volume
             devices = AudioUtilities.GetSpeakers()
             interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
             self.volume = interface.QueryInterface(IAudioEndpointVolume)
         except:
-            self.volume = None
+            self.volume = None   # If volume control not available
 
         try:
+            # Setup brightness control (Windows only)
             self.c = wmi.WMI(namespace='wmi')
             self.brightness_methods = self.c.WmiMonitorBrightnessMethods()[0]
         except:
             self.brightness_methods = None
 
+        # Create the GUI layout
         self.create_widgets()
 
+    # -------------------------------
+    # CREATE GUI PANELS + BUTTONS
+    # -------------------------------
     def create_widgets(self):
         container = tk.Frame(self.root, bg="#2c3e50")
         container.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Left panel
+        # Left control panel
         left = tk.Frame(container, bg="#34495e", width=400)
         left.pack(side="left", fill="y", padx=(0, 10))
         left.pack_propagate(False)
 
+        # Title
         title = tk.Label(left, text="AI Virtual Mouse", font=("Arial", 18, "bold"), fg="white", bg="#34495e")
         title.pack(pady=10)
 
+        # Status label
         self.status = tk.Label(left, text="Status: Stopped", font=("Arial", 12, "bold"), fg="white", bg="#34495e")
         self.status.pack(pady=5)
 
+        # Start/Stop buttons
         control = tk.Frame(left, bg="#34495e")
         control.pack(pady=10)
 
@@ -80,9 +97,11 @@ class VirtualMouseApp:
                                   command=self.stop_mouse, state="disabled")
         self.stop_btn.pack(side="left", padx=5)
 
+        # Instructions section
         instr_title = tk.Label(left, text="Hand Gestures", font=("Arial", 14, "bold"), fg="white", bg="#34495e")
         instr_title.pack(pady=5)
 
+        # Gesture explanation text
         instr_text = """
 MOUSE MOVEMENT:
 • Closed Fist → Move cursor
@@ -107,30 +126,37 @@ HOW TO USE MODES:
         instr = tk.Label(left, text=instr_text, font=("Arial", 9), fg="white", bg="#34495e", justify="left", wraplength=350)
         instr.pack(pady=5, padx=5, fill="both", expand=True)
 
-        # Right panel
+        # Right panel (Camera Feed)
         right = tk.Frame(container, bg="#2c3e50")
         right.pack(side="right", fill="both", expand=True)
 
         cam_title = tk.Label(right, text="Camera Feed", font=("Arial", 16, "bold"), fg="white", bg="#2c3e50")
         cam_title.pack(pady=10)
 
+        # Label where camera frames will be displayed
         self.cam_label = tk.Label(right, text="Click START to begin", font=("Arial", 18), fg="white", bg="#2c3e50",
                                   width=60, height=25)
         self.cam_label.pack(expand=True, fill="both")
 
+    # -------------------------------
+    # START THE CAMERA + HAND DETECTION
+    # -------------------------------
     def start_mouse(self):
-        self.cap = cv2.VideoCapture(0)
+        self.cap = cv2.VideoCapture(0)           # Open default camera
         self.cap.set(3, self.wcam)
         self.cap.set(4, self.hcam)
-        self.cap.set(cv2.CAP_PROP_FPS, 30)  # Limit FPS to 30
-        self.detector = htm.handDetector(maxHands=1)
-        self.wScr, self.hScr = autopy.screen.size()
+        self.cap.set(cv2.CAP_PROP_FPS, 30)       # Limit FPS to 30
+        self.detector = htm.handDetector(maxHands=1)  # Detect 1 hand at a time
+        self.wScr, self.hScr = autopy.screen.size()   # Screen resolution
         self.is_running = True
         self.status.config(text="Status: Running")
         self.start_btn.config(state="disabled")
         self.stop_btn.config(state="normal")
         self.process_video()
 
+    # -------------------------------
+    # STOP CAMERA + RESET UI
+    # -------------------------------
     def stop_mouse(self):
         self.is_running = False
         if hasattr(self, 'cap') and self.cap:
@@ -140,6 +166,9 @@ HOW TO USE MODES:
         self.stop_btn.config(state="disabled")
         self.cam_label.config(image="", text="Click START to begin")
 
+    # -------------------------------
+    # PROCESS VIDEO FRAME-BY-FRAME
+    # -------------------------------
     def process_video(self):
         if not self.is_running:
             return
@@ -149,28 +178,34 @@ HOW TO USE MODES:
             self.root.after(10, self.process_video)
             return
 
+        # Detect hands + landmarks
         img = self.detector.findHands(img)
         lmList, _ = self.detector.findPosition(img)
 
-        if lmList:
-            x1, y1 = lmList[8][1:]
-            fingers = self.detector.fingersUp()
+        if lmList:  # If a hand is detected
+            x1, y1 = lmList[8][1:]        # Tip of index finger
+            fingers = self.detector.fingersUp()  # Which fingers are up
             little_up, thumb_up, index_up = fingers[4], fingers[0], fingers[1]
 
-            # Screenshot (all fingers open)
+            # -------------------------------
+            # TAKE SCREENSHOT (All fingers open)
+            # -------------------------------
             if fingers == [1,1,1,1,1] and not self.screenshot_lock:
                 self.screenshot_lock = True
                 self.capture_screenshot()
             elif fingers != [1,1,1,1,1]:
                 self.screenshot_lock = False
 
-            # Volume mode: pinky + thumb
+            # -------------------------------
+            # VOLUME CONTROL (Pinky + Thumb)
+            # -------------------------------
             if little_up and thumb_up and not index_up:
                 if not self.volume_mode:
                     self.volume_mode = True
                     self.scroll_mode = self.brightness_mode = False
-                    self.initial_y = lmList[0][2]
+                    self.initial_y = lmList[0][2]   # Base Y position of wrist
 
+                # Move hand up/down to change volume
                 delta = lmList[0][2] - self.initial_y
                 if self.volume:
                     if delta > self.scroll_threshold:
@@ -180,7 +215,9 @@ HOW TO USE MODES:
                         new_vol = min(self.volume.GetMasterVolumeLevelScalar() + 0.01, 1)
                         self.volume.SetMasterVolumeLevelScalar(new_vol, None)
 
-            # Scroll mode
+            # -------------------------------
+            # SCROLLING (Pinky only)
+            # -------------------------------
             elif little_up and not thumb_up and not index_up:
                 if not self.scroll_mode:
                     self.scroll_mode = True
@@ -189,11 +226,13 @@ HOW TO USE MODES:
 
                 delta = lmList[0][2] - self.initial_y
                 if delta > self.scroll_threshold:
-                    pyautogui.scroll(-self.scroll_speed)
+                    pyautogui.scroll(-self.scroll_speed)  # Scroll down
                 elif delta < -self.scroll_threshold:
-                    pyautogui.scroll(self.scroll_speed)
+                    pyautogui.scroll(self.scroll_speed)   # Scroll up
 
-            # Brightness mode
+            # -------------------------------
+            # BRIGHTNESS CONTROL (Pinky + Index)
+            # -------------------------------
             elif little_up and index_up and not thumb_up and fingers[2]==0 and fingers[3]==0:
                 if not self.brightness_mode:
                     self.brightness_mode = True
@@ -205,19 +244,22 @@ HOW TO USE MODES:
                     try:
                         brightness = self.c.WmiMonitorBrightness()[0].CurrentBrightness
                         if delta > self.scroll_threshold:
-                            new_brightness = max(brightness - 5, 0)  # Increased step from 1 to 5
+                            new_brightness = max(brightness - 5, 0)
                             self.brightness_methods.WmiSetBrightness(new_brightness, 0)
                         elif delta < -self.scroll_threshold:
-                            new_brightness = min(brightness + 5, 100)  # Increased step from 1 to 5
+                            new_brightness = min(brightness + 5, 100)
                             self.brightness_methods.WmiSetBrightness(new_brightness, 0)
                     except Exception as e:
-                        print(f"Brightness control error: {e}")  # Debug info
+                        print(f"Brightness control error: {e}")
 
             else:
+                # Reset modes if no special gesture is active
                 self.scroll_mode = self.volume_mode = self.brightness_mode = False
                 self.initial_y = None
 
-            # Mouse movement
+            # -------------------------------
+            # MOUSE MOVEMENT (Fist closed)
+            # -------------------------------
             if fingers == [0,0,0,0,0]:
                 x3 = np.interp(x1, (self.frameR, self.wcam - self.frameR), (0, self.wScr))
                 y3 = np.interp(y1, (self.frameR, self.hcam - self.frameR), (0, self.hScr))
@@ -229,31 +271,42 @@ HOW TO USE MODES:
                     pass
                 self.plocX, self.plocY = self.clocX, self.clocY
 
-            # Left click
+            # -------------------------------
+            # LEFT CLICK (Index finger only)
+            # -------------------------------
             if fingers==[0,1,0,0,0]:
                 if sum(fingers) == 1:
                     autopy.mouse.click()
                     time.sleep(0.1)
-            # Right click
+
+            # -------------------------------
+            # RIGHT CLICK (Thumb only)
+            # -------------------------------
             if fingers==[1,0,0,0,0]:
-                if sum(fingers) == 1:  # Ensure only one finger is up
+                if sum(fingers) == 1:
                     autopy.mouse.click(button=autopy.mouse.Button.RIGHT)
                     time.sleep(0.1)
 
+        # Display camera frame in GUI
         self.display_frame(img)
-        self.root.after(5, self.process_video)  # ~200 FPS for ultra responsiveness
+        self.root.after(5, self.process_video)  # Run again after 5ms
 
+    # -------------------------------
+    # CAPTURE SCREENSHOT
+    # -------------------------------
     def capture_screenshot(self):
+        # Save screenshots in ~/Pictures/Screenshots
         if not self.screenshot_folder:
             pictures_folder = os.path.join(os.path.expanduser('~'), 'Pictures')
             self.screenshot_folder = os.path.join(pictures_folder, 'Screenshots')
             os.makedirs(self.screenshot_folder, exist_ok=True)
 
+        # File name with timestamp
         timestamp = time.strftime("%Y%m%d-%H%M%S")
         filepath = os.path.join(self.screenshot_folder, f"screenshot_{timestamp}.png")
         pyautogui.screenshot(filepath)
 
-        # Auto-close popup after 2 seconds
+        # Show popup confirmation (auto closes after 2s)
         def show_and_close():
             msg = tk.Toplevel()
             msg.title("Screenshot")
@@ -264,18 +317,26 @@ HOW TO USE MODES:
 
         threading.Thread(target=show_and_close, daemon=True).start()
 
-
+    # -------------------------------
+    # DISPLAY FRAME IN TKINTER WINDOW
+    # -------------------------------
     def display_frame(self, frame):
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert to RGB
         img_pil = Image.fromarray(frame).resize((750, 500))
         img_tk = ImageTk.PhotoImage(img_pil)
         self.cam_label.config(image=img_tk, text="")
         self.cam_label.image = img_tk
 
+    # -------------------------------
+    # HANDLE APP EXIT
+    # -------------------------------
     def on_close(self):
         self.stop_mouse()
         self.root.destroy()
 
+# -------------------------------
+# RUN THE APPLICATION
+# -------------------------------
 if __name__=="__main__":
     root = tk.Tk()
     app = VirtualMouseApp(root)
